@@ -36,40 +36,43 @@ class Suggestion extends RichResponse {
    * @example
    * let suggestion = new Suggestion('suggestion');
    * const anotherSuggestion = new Suggestion({
-   *     title: 'suggestion',
+   *     title: 'Choose an item:',
+   *     reply: 'suggestion',
    *     platform: 'ACTIONS_ON_GOOGLE'
    * });
    *
-   * @param {string|Object} suggestion title string or an object representing a suggestion response
+   * @param {string|Object} suggestion reply string or an object representing a suggestion response
    */
   constructor(suggestion) {
     super();
     this.platform = undefined;
     this.replies = [];
+    this.title = "Choose an item:"
     if (
       suggestion === undefined ||
       (typeof suggestion === 'object' && !suggestion.title)
-    ) {
+      ) {
       throw new Error(
         'Reply string required by Suggestion constructor'
-      );
-    }
-    if (typeof suggestion === 'string') {
-      this.replies.push(suggestion);
-    } else if (typeof suggestion === 'object') {
-      this.replies.push(suggestion.title);
-      if (
-        typeof suggestion.platform !== 'undefined' &&
-        suggestion.platform !== PLATFORMS.UNSPECIFIED
+        );
+  }
+  if (typeof suggestion === 'string') {
+    this.replies.push(suggestion);
+  } else if (typeof suggestion === 'object') {
+    this.replies.push(suggestion.reply);
+    this.title = suggestion.title
+    if (
+      typeof suggestion.platform !== 'undefined' &&
+      suggestion.platform !== PLATFORMS.UNSPECIFIED
       ) {
-        if (SUPPORTED_RICH_MESSAGE_PLATFORMS.indexOf(suggestion.platform) < 0) {
-          throw new Error(`Platform '${suggestion.platform}' not supported.`);
-        } else {
-          this.platform = suggestion.platform;
-        }
+      if (SUPPORTED_RICH_MESSAGE_PLATFORMS.indexOf(suggestion.platform) < 0) {
+        throw new Error(`Platform '${suggestion.platform}' not supported.`);
+      } else {
+        this.platform = suggestion.platform;
       }
     }
   }
+}
 
   /**
    * Set the reply for a Suggestion
@@ -81,21 +84,21 @@ class Suggestion extends RichResponse {
    * @param {string} reply
    * @return {Suggestion}
    */
-  setReply(reply) {
-    if (typeof reply !== 'string') {
-      throw new Error(`setReply requires a string but found ${typeof reply}`);
-    }
-    if (this.replies.length !== 1) {
-      throw new Error(
-        `Expected one reply in Suggestion object but found ${
-          this.replies.length
-        }`
-      );
-    } else {
-      this.replies[0] = reply;
-    }
-    return this;
+setReply(reply) {
+  if (typeof reply !== 'string') {
+    throw new Error(`setReply requires a string but found ${typeof reply}`);
   }
+  if (this.replies.length !== 1) {
+    throw new Error(
+      `Expected one reply in Suggestion object but found ${
+        this.replies.length
+      }`
+      );
+  } else {
+    this.replies[0] = reply;
+  }
+  return this;
+}
 
   /**
    * Add another reply to an existing suggestion object
@@ -107,12 +110,12 @@ class Suggestion extends RichResponse {
    * @param {string} reply
    * @private
    */
-  addReply_(reply) {
-    if (typeof reply !== 'string') {
-      throw new Error(`addReply requires a string but found ${typeof reply}`);
-    }
-    this.replies.push(reply);
+addReply_(reply) {
+  if (typeof reply !== 'string') {
+    throw new Error(`addReply requires a string but found ${typeof reply}`);
   }
+  this.replies.push(reply);
+}
 
   /**
    * Get the v1 response object for the rich response
@@ -126,36 +129,36 @@ class Suggestion extends RichResponse {
    * @return {Object} v1 response object
    * @private
    */
-  getV1ResponseObject_(platform) {
+getV1ResponseObject_(platform) {
     // Check if response is platform specific
-    if (this.platform && this.platform !== platform) {
+  if (this.platform && this.platform !== platform) {
       // If it is and is not for the specific platform return null
-      return null;
-    }
+    return null;
+  }
 
-    let response;
-    if (platform === PLATFORMS.ACTIONS_ON_GOOGLE) {
-      response = {
-        suggestions: [],
-        type: 'suggestion_chips',
-        platform: V2_TO_V1_PLATFORM_NAME[platform],
-      };
-      if (this.replies) {
-        this.replies.forEach((reply) => {
-          response.suggestions.push({title: reply});
-        });
-      }
-    } else {
-      response = {type: v1MessageObjectSuggestions};
-      if (this.replies) response.replies = this.replies;
+  let response;
+  if (platform === PLATFORMS.ACTIONS_ON_GOOGLE) {
+    response = {
+      suggestions: [],
+      type: 'suggestion_chips',
+      platform: V2_TO_V1_PLATFORM_NAME[platform],
+    };
+    if (this.replies) {
+      this.replies.forEach((reply) => {
+        response.suggestions.push({title: reply});
+      });
+    }
+  } else {
+    response = {type: v1MessageObjectSuggestions};
+    if (this.replies) response.replies = this.replies;
       // Response is the same for generic responses without the platform attribute
       // If the platform is not undefined or the platform is not unspecified
-      if (SUPPORTED_RICH_MESSAGE_PLATFORMS.indexOf(platform) > -1) {
-        response.platform = V2_TO_V1_PLATFORM_NAME[platform];
-      }
+    if (SUPPORTED_RICH_MESSAGE_PLATFORMS.indexOf(platform) > -1) {
+      response.platform = V2_TO_V1_PLATFORM_NAME[platform];
     }
-    return response;
   }
+  return response;
+}
 
   /**
    * Get the v2 response object for the rich response
@@ -169,31 +172,36 @@ class Suggestion extends RichResponse {
    * @return {Object} v2 response object
    * @private
    */
-  getV2ResponseObject_(platform) {
+getV2ResponseObject_(platform) {
     // Check if response is platform specific
-    if (this.platform && this.platform !== platform) {
+  if (this.platform && this.platform !== platform) {
       // If it is and is not for the specific platform return null
-      return null;
-    }
+    return null;
+  }
 
-    let response;
-    if (platform === PLATFORMS.ACTIONS_ON_GOOGLE) {
+  let response;
+  if (platform === PLATFORMS.ACTIONS_ON_GOOGLE) {
       // If the platform is Actions on Google use a basic card response
-      response = {suggestions: {suggestions: []}};
-      response.platform = PLATFORMS.ACTIONS_ON_GOOGLE;
-      this.replies.forEach((reply) => {
-        response.suggestions.suggestions.push({title: reply});
-      });
-    } else {
-      response = {quickReplies: {quickReplies: this.replies}};
+    response = {suggestions: {suggestions: []}};
+    response.platform = PLATFORMS.ACTIONS_ON_GOOGLE;
+    this.replies.forEach((reply) => {
+      response.suggestions.suggestions.push({title: reply});
+    });
+  } else {
+    response = {
+      quickReplies: {
+        title: this.title,
+        quickReplies: this.replies
+      }
+    };
       // Response is the same for generic responses without the platform attribute
       // If the platform is not undefined or the platform is not unspecified
-      if (SUPPORTED_RICH_MESSAGE_PLATFORMS.indexOf(platform) > -1) {
-        response.platform = platform;
+        if (SUPPORTED_RICH_MESSAGE_PLATFORMS.indexOf(platform) > -1) {
+          response.platform = platform;
+        }
       }
+      return response;
     }
-    return response;
   }
-}
 
-module.exports = Suggestion;
+  module.exports = Suggestion;
